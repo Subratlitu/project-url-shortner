@@ -5,10 +5,6 @@ const route = require('./routes/route');
 const { default: mongoose } = require('mongoose');
 
 
-
-
-
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use('/', route);
