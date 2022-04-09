@@ -30,7 +30,9 @@ const redisClient = redis.createClient(
   
 
 const createShortUrl=async function(req,res){
+    try{
     const requestBody=req.body;
+
     //checking wheather request body is empty or not
     if(!validUrl.isValidRequestBody(requestBody)){
         res.status(400).send({status:false,message:"invalid request body.please provide some valid data"})
@@ -78,10 +80,15 @@ const createShortUrl=async function(req,res){
                     await SET_ASYNC(`${urlCode}`,JSON.stringify(longUrl),"EX", 300)
                     res.status(200).send({status:true,message:"success",data:url})
         }
+    }
+    catch(error){
+        return res.status(500).send({status:false, Error:error.message})  
+    }
     
 }
 
 const geturl=async function(req,res){
+    try{
 
     let params=req.params;
     let {urlCode}=params
@@ -93,12 +100,17 @@ const geturl=async function(req,res){
     //try to find from cache
     let cacheUrlCode=await GET_ASYNC(`${urlCode}`)
     if(cacheUrlCode){
-        return res.status(302).redirect(JSON.parse(cacheUrlCode))
+        let parsedUrlCode=JSON.parse(cacheUrlCode)
+        return res.status(302).redirect(parsedUrlCode)
     }
     //if i will not find from catch 
     let validUrlCode = await urlModel.findOne({urlCode})
     if(!validUrlCode) return res.status(404).send({status: false, message: "URL Code doesn't exists"})
     return res.status(302).redirect(validUrlCode.longUrl)
+}
+catch(error){
+    return res.status(500).send({status:false, Error:error.message})  
+}
 }
 
 module.exports={
@@ -107,57 +119,3 @@ module.exports={
 }
 
 
-// const urlShortener = async function(req,res){
-
-//     let longUrl=req.body.longUrl; 
-
-//     // If body is empty 
-//     if(Object.keys(req.body).length==0) return res.status(400).send({status: false, message: "Please Provide a Long URL"}) 
-    
-//     //removing spaces from url input
-//     longUrl=longUrl.trim();
-//     if(!longUrl) return res.status(400).send({status: false, message: "Please Provide a Long URL"})  
-
-//     //function to check valid url   
-//     let a=/[(http(s)?):\/\/(www\.)?a-zA-Z0-9@:%.\+#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%\+.#?&//=]*)/
-//     if(!(a.test(longUrl))) return res.status(400).send({status: false, message: "Please Enter a Valid URL"}) 
-
-//     // //checking if longUrl exists in db and should return the same response/mongo doc
-//     let checkUrl=await urlModel.findOne({longUrl}).select({_id:0, longUrl:1, shortUrl:1, urlCode:1})
-//     if(checkUrl) return res.status(200).send({status: true, data:checkUrl}) 
-
-//     let baseUrl="http://localhost:3000/" 
-
-//     //random integer Id/code generation
-//     let code=nanoId.nanoid()//A tiny, secure, URL-friendly, unique string ID generator for js
-//     let code1=""  
-//     for (let i = 0; i < code.length; i++) {
-//         //charCodeAt() method returns an integer between 0 and 65535 representing the UTF-16 code unit at the given index
-//         code1 += code[i].charCodeAt(0);
-//     }
-    
-//     //function to shorten url
-//     let urlCodeToShortURL=function (n){//n=random integer id generated from above 
-//     // Map to store 62 possible characters
-//     let map = "abcdefghijklmnopqrstuvwxyzABCDEF"
-//     "GHIJKLMNOPQRSTUVWXYZ0123456789";
-//     let shorturl = [];    
-//         while (n){
-//             // use above map to store actual character
-//             // in short url
-//             shorturl.push(map[n % 62]);// Convert given integer id to a base 62 number
-//             n = Math.floor(n / 62);
-//         }
-//     // Reverse shortURL to complete base conversion
-//     shorturl.reverse();
-//     return shorturl.join("");
-//     }
-//     let urlCode = urlCodeToShortURL(code1)
-//     urlCode=urlCode.toLowerCase();
-
-//     let urldata = {longUrl:longUrl, shortUrl:baseUrl+urlCode, urlCode:urlCode};
-//     let data = await urlModel.create(urldata)
-
-//     await SET_ASYNC(`${urlCode}`, JSON.stringify(data.longUrl),"EX", 30)
-//     return res.status(201).send({status:true, data:urldata})
-// }
